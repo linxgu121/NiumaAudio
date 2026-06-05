@@ -24,7 +24,7 @@ namespace NiumaAudio.Controller
         [Tooltip("AudioBus 到 AudioMixerGroup 的绑定。未绑定时使用 AudioSource.volume 兜底。")]
         [SerializeField] private AudioMixerGroupConfig[] mixerGroups = Array.Empty<AudioMixerGroupConfig>();
 
-        [Tooltip("可选外部资源解析器。该组件必须实现 IAudioClipResolver；为空时使用 AudioCatalog。")]
+        [Tooltip("音频资源解析脚本。接 Addressables 或热更新时拖对应的 AudioClipResolver；第一版使用 AudioCatalog 时可留空。")]
         [SerializeField] private MonoBehaviour clipResolverBehaviour;
 
         [Header("AudioSource 池")]
@@ -706,7 +706,7 @@ namespace NiumaAudio.Controller
 
             if (!_warnedInvalidClipResolver)
             {
-                Debug.LogWarning("[NiumaAudio] clipResolverBehaviour 未实现 IAudioClipResolver，已忽略。", clipResolverBehaviour);
+                Debug.LogWarning("[NiumaAudio] ClipResolver 绑定的不是音频资源解析脚本，已忽略；使用 AudioCatalog 时可留空。", clipResolverBehaviour);
                 _warnedInvalidClipResolver = true;
             }
 
