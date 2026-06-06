@@ -102,6 +102,7 @@ namespace NiumaAudio.Controller
         private bool _warnedMissingCueDefinitions;
         private bool _autoInitializeFailed;
         private bool _isDestroyed;
+        private int _lastTickFrame = -1;
 
         public string ModuleName => "NiumaAudio";
         public bool IsInitialized { get; private set; }
@@ -258,6 +259,18 @@ namespace NiumaAudio.Controller
             if (!IsRunning || _audioService == null)
             {
                 return;
+            }
+
+            // 防止同时开启 driveTickInUpdate 和外部模块启动器时，同一帧重复推进淡入淡出。
+            if (Application.isPlaying)
+            {
+                var currentFrame = Time.frameCount;
+                if (_lastTickFrame == currentFrame)
+                {
+                    return;
+                }
+
+                _lastTickFrame = currentFrame;
             }
 
             _audioService.Tick(deltaTime);

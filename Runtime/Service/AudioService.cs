@@ -204,7 +204,7 @@ namespace NiumaAudio.Service
 
             if (_currentBgm != null
                 && !request.RestartIfSame
-                && string.Equals(_currentBgm.AddressKey, resolved.AddressKey, StringComparison.Ordinal)
+                && IsSameBgm(_currentBgm, resolved)
                 && _currentBgm.Source != null
                 && _currentBgm.Source.isPlaying)
             {
@@ -553,6 +553,13 @@ namespace NiumaAudio.Service
             }
 
             return true;
+        }
+
+        private static bool IsSameBgm(AudioRuntimePlayback current, ResolvedAudioCue resolved)
+        {
+            return current != null
+                   && string.Equals(current.CueId, resolved.CueId, StringComparison.Ordinal)
+                   && string.Equals(current.AddressKey, resolved.AddressKey, StringComparison.Ordinal);
         }
 
         private void BuildUnitySources(int poolInitialSize, int poolMaxSize)

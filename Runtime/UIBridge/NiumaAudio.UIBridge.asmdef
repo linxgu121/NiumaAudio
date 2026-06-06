@@ -1,7 +1,9 @@
 {
-  "name": "NiumaAudio.Runtime",
+  "name": "NiumaAudio.UIBridge",
   "references": [
-    "NiumaCore.Runtime"
+    "NiumaAudio.Runtime",
+    "NiumaCore.Runtime",
+    "Unity.ugui"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -10,5 +12,6 @@
   "precompiledReferences": [],
   "autoReferenced": true,
   "defineConstraints": [],
-  "versionDefines": []
+  "versionDefines": [],
+  "noEngineReferences": false
 }

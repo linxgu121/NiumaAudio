@@ -113,7 +113,7 @@ namespace NiumaAudio.Service
             source.loop = false;
             source.pitch = 1f;
             source.volume = 0f;
-            source.spatialBlend = bus == AudioBus.Bgm || bus == AudioBus.UI || bus == AudioBus.Voice ? 0f : source.spatialBlend;
+            source.spatialBlend = 0f;
         }
     }
 }

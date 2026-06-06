@@ -23,6 +23,9 @@ namespace NiumaAudio.Debugging
         private const string AmbientCueId = "test_ambient";
         private const string AmbientAddressKey = "audio/test_ambient";
         private const string AmbientChannelId = "test_channel";
+        private const string ThreeDCueId = "test_sfx_3d";
+        private const string NoOverlapCueId = "test_sfx_no_overlap";
+        private const string RandomPitchCueId = "test_sfx_random_pitch";
 
         [Header("测试行为")]
         [Tooltip("运行测试后是否在 Console 输出每一条通过信息。关闭后只输出最终结果和失败原因。")]
@@ -54,6 +57,9 @@ namespace NiumaAudio.Debugging
             ResetReport();
 
             RunCase("Catalog Key 能解析并播放 Cue", TestCatalogResolveAndPlayCue);
+            RunCase("3D Cue 播放路径可用", TestPlayCue3D);
+            RunCase("AllowOverlap 关闭时复用当前播放", TestAllowOverlapDisabledReusesActivePlayback);
+            RunCase("随机音高 Cue 可稳定播放", TestRandomPitchCuePlayback);
             RunCase("缺失 Key 返回结构化失败", TestMissingKeyFails);
             RunCase("BGM 播放、重复播放和停止的状态稳定", TestBgmLifecycle);
             RunCase("Bus 音量与静音设置可保存", TestVolumeAndMute);
@@ -121,6 +127,63 @@ namespace NiumaAudio.Debugging
 
             ExpectFailure("缺失 AddressKey 播放失败", result, AudioFailureReason.ClipMissing);
             ExpectEqual(0L, service.Revision, "播放失败不递增 Revision");
+
+            service.Dispose();
+        }
+
+        private void TestPlayCue3D()
+        {
+            var service = CreateService();
+
+            var result = service.PlayCue3D(new AudioPlayRequest
+            {
+                CueId = ThreeDCueId,
+                Position = new Vector3(1f, 2f, 3f),
+                HasPosition = true,
+                SourceModule = nameof(AudioBasicTestRunner)
+            });
+
+            ExpectSuccess("通过 CueId 播放 3D SFX 成功", result);
+            Expect(result.Handle.IsValid, "3D SFX 返回有效 Handle");
+            ExpectEqual(AudioBus.Sfx, result.Handle.Bus, "3D SFX Handle Bus 正确");
+
+            service.Dispose();
+        }
+
+        private void TestAllowOverlapDisabledReusesActivePlayback()
+        {
+            var service = CreateService();
+
+            var first = service.PlayCue(new AudioPlayRequest
+            {
+                CueId = NoOverlapCueId,
+                SourceModule = nameof(AudioBasicTestRunner)
+            });
+            ExpectSuccess("AllowOverlap=false 的 Cue 第一次播放成功", first);
+
+            var second = service.PlayCue(new AudioPlayRequest
+            {
+                CueId = NoOverlapCueId,
+                SourceModule = nameof(AudioBasicTestRunner)
+            });
+            ExpectSuccess("AllowOverlap=false 的 Cue 重复播放返回成功", second);
+            ExpectEqual(first.Handle.HandleId, second.Handle.HandleId, "AllowOverlap=false 时复用正在播放的 Handle");
+
+            service.Dispose();
+        }
+
+        private void TestRandomPitchCuePlayback()
+        {
+            var service = CreateService();
+
+            var result = service.PlayCue(new AudioPlayRequest
+            {
+                CueId = RandomPitchCueId,
+                SourceModule = nameof(AudioBasicTestRunner)
+            });
+
+            ExpectSuccess("随机音高 Cue 播放成功", result);
+            Expect(result.Handle.IsValid, "随机音高 Cue 返回有效 Handle");
 
             service.Dispose();
         }
@@ -327,7 +390,10 @@ namespace NiumaAudio.Debugging
                 CreateCue(BgmCueId, BgmAddressKey, AudioBus.Bgm, AudioPlayMode.Loop),
                 CreateCue(SfxCueId, SfxAddressKey, AudioBus.Sfx, AudioPlayMode.OneShot),
                 CreateCue(VoiceCueId, VoiceAddressKey, AudioBus.Voice, AudioPlayMode.OneShot),
-                CreateCue(AmbientCueId, AmbientAddressKey, AudioBus.Ambient, AudioPlayMode.Loop)
+                CreateCue(AmbientCueId, AmbientAddressKey, AudioBus.Ambient, AudioPlayMode.Loop),
+                CreateCue(ThreeDCueId, SfxAddressKey, AudioBus.Sfx, AudioPlayMode.OneShot, AudioSpatialMode.ThreeD),
+                CreateCue(NoOverlapCueId, SfxAddressKey, AudioBus.Sfx, AudioPlayMode.OneShot, AudioSpatialMode.TwoD, false),
+                CreateCue(RandomPitchCueId, SfxAddressKey, AudioBus.Sfx, AudioPlayMode.OneShot, AudioSpatialMode.TwoD, true, 0.2f)
             };
         }
 
@@ -340,7 +406,14 @@ namespace NiumaAudio.Debugging
                 new AudioCatalogEntry { AddressKey = AmbientAddressKey, Clip = CreateClip("ambient_clip") });
         }
 
-        private AudioCueDefinition CreateCue(string cueId, string addressKey, AudioBus bus, AudioPlayMode playMode = AudioPlayMode.OneShot)
+        private AudioCueDefinition CreateCue(
+            string cueId,
+            string addressKey,
+            AudioBus bus,
+            AudioPlayMode playMode = AudioPlayMode.OneShot,
+            AudioSpatialMode spatialMode = AudioSpatialMode.TwoD,
+            bool allowOverlap = true,
+            float randomPitchRange = 0f)
         {
             var cue = ScriptableObject.CreateInstance<AudioCueDefinition>();
             cue.CueId = cueId;
@@ -348,10 +421,11 @@ namespace NiumaAudio.Debugging
             cue.AddressKey = addressKey;
             cue.Bus = bus;
             cue.PlayMode = playMode;
-            cue.SpatialMode = AudioSpatialMode.TwoD;
+            cue.SpatialMode = spatialMode;
             cue.Volume = 1f;
             cue.Pitch = 1f;
-            cue.AllowOverlap = true;
+            cue.RandomPitchRange = randomPitchRange;
+            cue.AllowOverlap = allowOverlap;
             _createdObjects.Add(cue);
             return cue;
         }

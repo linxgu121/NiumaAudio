@@ -1,7 +1,8 @@
 {
-  "name": "NiumaAudio.Runtime",
+  "name": "NiumaAudio.SaveBridge",
   "references": [
-    "NiumaCore.Runtime"
+    "NiumaAudio.Runtime",
+    "NiumaSave.Runtime"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
@@ -10,5 +11,6 @@
   "precompiledReferences": [],
   "autoReferenced": true,
   "defineConstraints": [],
-  "versionDefines": []
+  "versionDefines": [],
+  "noEngineReferences": false
 }
