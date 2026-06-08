@@ -36,4 +36,52 @@ NiumaAudio 是全局音频服务模块，负责 BGM、SFX、UI、环境音、语
 ## 协作边界
 Audio 只管声音播放和设置，不决定剧情、交互、技能等业务何时触发音效。业务模块只发播放请求。
 
+## 场景挂载与 Inspector 配置
+### NiumaAudioController
+建议挂载位置：`CoreScene/BootstrapRoot/AudioRoot`。
+
+用途：全局唯一音频服务，管理 BGM、SFX、UI、环境音、语音、音量和静音设置。
+
+| 字段 | 怎么填 | 可否留空 | 不填会怎样 |
+| --- | --- | --- | --- |
+| `Cue Definitions` | 拖所有 `AudioCueDefinition` 配置 | 不建议 | CueId 无法解析，播放请求会失败 |
+| `Catalog Definition` | 拖本地音频目录资产 | 不建议 | AddressKey 找不到 AudioClip |
+| `Mixer Groups` | 有 AudioMixer 时绑定各 Bus 的 MixerGroup | 可以 | 留空时用 AudioSource 音量兜底 |
+| `Pool Root` | 拖 AudioRoot 下的池节点 | 可以 | 留空时运行时自动创建 |
+| `Pool Initial Size / Max Size` | 按项目音效并发量设置 | 不可以 | 太小会 SourceUnavailable，太大会浪费 |
+| `Register Service To Context` | 核心场景开启 | 可以关闭 | 关闭后其他桥接脚本无法从 GameContext 获取音频服务 |
+| `Drive Tick In Update` | 没有统一模块启动器时开启 | 按项目决定 | 外部已 Tick 时再开启会造成淡入淡出速度异常 |
+
+### NiumaAudioSaveAdapter
+建议挂载位置：`CoreScene/BootstrapRoot/SaveRoot/SaveAdapters`。
+
+用途：保存音量、静音、当前 BGM 等音频设置。
+
+| 字段 | 怎么填 | 可否留空 | 不填会怎样 |
+| --- | --- | --- | --- |
+| `Audio Controller` | 拖 `NiumaAudioController` | 不建议 | 自动查找失败时音频设置不进存档 |
+| `Save Controller` | 拖 `NiumaSaveController` | 不建议 | 无法注册存档 Provider |
+
+### AudioCuePlayer
+建议挂载位置：需要主动播放音效的按钮、机关、动画事件物体。
+
+用途：把 Inspector 上配置的 CueId 播放请求发给 NiumaAudio。
+
+| 字段 | 怎么填 | 可否留空 | 不填会怎样 |
+| --- | --- | --- | --- |
+| `Audio Controller` | 拖 `NiumaAudioController`，或留空自动查找 | 可以 | 自动查找失败时不播放 |
+| `Cue` | 填 `AudioCueDefinition.CueId` 或 AddressKey | 不可以 | 没有可播放音效 |
+| `Override Bus` | 普通按钮通常关闭，特殊需求才覆盖 Bus | 可以 | 开启后会覆盖 CueDefinition 的 Bus |
+
+### UIButtonAudioBinder
+建议挂载位置：需要点击音效的 Button 物体。
+
+用途：自动监听 Button 点击并播放 UI 音效。
+
+| 字段 | 怎么填 | 可否留空 | 不填会怎样 |
+| --- | --- | --- | --- |
+| `Button` | 拖当前物体上的 Button | 可以 | 留空时自动获取当前物体 Button |
+| `Click Cue` | 填按钮点击 CueId | 不可以 | 点击不播放音效 |
+| `Audio Controller` | 拖全局 `NiumaAudioController` | 可以 | 自动查找失败时不播放 |
+
 
