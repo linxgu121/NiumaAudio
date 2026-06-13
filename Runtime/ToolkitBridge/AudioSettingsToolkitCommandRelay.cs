@@ -25,6 +25,18 @@ namespace NiumaAudio.ToolkitBridge
                 audioController.SetMuted(bus, muted);
         }
 
+        public void StopBgm()
+        {
+            if (EnsureController())
+                audioController.StopBgm();
+        }
+
+        public void StopVoice()
+        {
+            if (EnsureController())
+                audioController.StopVoice();
+        }
+
         private bool EnsureController()
         {
             if (audioController != null)

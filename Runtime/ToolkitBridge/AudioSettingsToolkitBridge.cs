@@ -74,6 +74,13 @@ namespace NiumaAudio.ToolkitBridge
             _refreshRequested = true;
         }
 
+        public void CloseAudioSettings()
+        {
+            _refreshRequested = false;
+            if (EnsureUIManager(true))
+                uiManager.CloseView(audioSettingsViewId);
+        }
+
         public void RefreshAudioSettings()
         {
             if (!EnsureController(true) || !EnsureUIManager(true))

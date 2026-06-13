@@ -21,6 +21,14 @@ namespace NiumaAudio.ToolkitBridge
         [SerializeField, Tooltip("当前 BGM Label 的 name。")]
         private string bgmLabelName = "CurrentBgmText";
 
+        [Header("按钮 name")]
+        [SerializeField, Tooltip("停止 BGM Button 的 name。为空时不注册按钮。")]
+        private string stopBgmButtonName = "StopBgmButton";
+        [SerializeField, Tooltip("停止语音 Button 的 name。为空时不注册按钮。")]
+        private string stopVoiceButtonName = "StopVoiceButton";
+        [SerializeField, Tooltip("关闭音频设置面板 Button 的 name。为空时不注册按钮。")]
+        private string closeButtonName = "CloseButton";
+
         [Header("Bus 控件命名")]
         [SerializeField, Tooltip("音量 Slider 名称后缀。实际 name = Bus名 + 后缀，例如 MasterVolumeSlider。")]
         private string volumeSliderSuffix = "VolumeSlider";
@@ -36,6 +44,12 @@ namespace NiumaAudio.ToolkitBridge
         private BusBoolEvent onMutedChanged = new BusBoolEvent();
         [SerializeField, Tooltip("拖 AudioSettingsToolkitBridge.RequestRefresh。")]
         private UnityEvent onRefreshRequested = new UnityEvent();
+        [SerializeField, Tooltip("拖 AudioSettingsToolkitCommandRelay.StopBgm。")]
+        private UnityEvent onStopBgmRequested = new UnityEvent();
+        [SerializeField, Tooltip("拖 AudioSettingsToolkitCommandRelay.StopVoice。")]
+        private UnityEvent onStopVoiceRequested = new UnityEvent();
+        [SerializeField, Tooltip("拖 AudioSettingsToolkitBridge.CloseAudioSettings。")]
+        private UnityEvent onCloseRequested = new UnityEvent();
 
         protected override string DefaultProviderId => "AudioSettingsPanel";
 
@@ -45,12 +59,18 @@ namespace NiumaAudio.ToolkitBridge
                 titleLabelName,
                 statusLabelName,
                 bgmLabelName,
+                stopBgmButtonName,
+                stopVoiceButtonName,
+                closeButtonName,
                 volumeSliderSuffix,
                 muteToggleSuffix,
                 valueLabelSuffix,
                 (bus, value) => onVolumeChanged?.Invoke(bus, value),
                 (bus, muted) => onMutedChanged?.Invoke(bus, muted),
-                () => onRefreshRequested?.Invoke());
+                () => onRefreshRequested?.Invoke(),
+                () => onStopBgmRequested?.Invoke(),
+                () => onStopVoiceRequested?.Invoke(),
+                () => onCloseRequested?.Invoke());
         }
     }
 
@@ -59,12 +79,18 @@ namespace NiumaAudio.ToolkitBridge
         private readonly string _titleName;
         private readonly string _statusName;
         private readonly string _bgmName;
+        private readonly string _stopBgmButtonName;
+        private readonly string _stopVoiceButtonName;
+        private readonly string _closeButtonName;
         private readonly string _volumeSuffix;
         private readonly string _muteSuffix;
         private readonly string _valueSuffix;
         private readonly Action<AudioBus, float> _volumeChanged;
         private readonly Action<AudioBus, bool> _mutedChanged;
         private readonly Action _refreshRequested;
+        private readonly Action _stopBgmRequested;
+        private readonly Action _stopVoiceRequested;
+        private readonly Action _closeRequested;
         private Label _title;
         private Label _status;
         private Label _bgm;
@@ -74,22 +100,34 @@ namespace NiumaAudio.ToolkitBridge
             string titleName,
             string statusName,
             string bgmName,
+            string stopBgmButtonName,
+            string stopVoiceButtonName,
+            string closeButtonName,
             string volumeSuffix,
             string muteSuffix,
             string valueSuffix,
             Action<AudioBus, float> volumeChanged,
             Action<AudioBus, bool> mutedChanged,
-            Action refreshRequested)
+            Action refreshRequested,
+            Action stopBgmRequested,
+            Action stopVoiceRequested,
+            Action closeRequested)
         {
             _titleName = titleName;
             _statusName = statusName;
             _bgmName = bgmName;
+            _stopBgmButtonName = stopBgmButtonName;
+            _stopVoiceButtonName = stopVoiceButtonName;
+            _closeButtonName = closeButtonName;
             _volumeSuffix = string.IsNullOrWhiteSpace(volumeSuffix) ? "VolumeSlider" : volumeSuffix.Trim();
             _muteSuffix = string.IsNullOrWhiteSpace(muteSuffix) ? "MuteToggle" : muteSuffix.Trim();
             _valueSuffix = string.IsNullOrWhiteSpace(valueSuffix) ? "ValueText" : valueSuffix.Trim();
             _volumeChanged = volumeChanged;
             _mutedChanged = mutedChanged;
             _refreshRequested = refreshRequested;
+            _stopBgmRequested = stopBgmRequested;
+            _stopVoiceRequested = stopVoiceRequested;
+            _closeRequested = closeRequested;
         }
 
         protected override void OnInitializeTyped()
@@ -98,6 +136,9 @@ namespace NiumaAudio.ToolkitBridge
             _status = QLabel(_statusName);
             _bgm = QLabel(_bgmName);
             SetText(_title, "音频设置");
+            RegisterButtonIfConfigured(_stopBgmButtonName, HandleStopBgmClicked);
+            RegisterButtonIfConfigured(_stopVoiceButtonName, HandleStopVoiceClicked);
+            RegisterButtonIfConfigured(_closeButtonName, HandleCloseClicked);
 
             var buses = (AudioBus[])Enum.GetValues(typeof(AudioBus));
             for (var i = 0; i < buses.Length; i++)
@@ -179,6 +220,29 @@ namespace NiumaAudio.ToolkitBridge
 
             _mutedChanged?.Invoke(bus, muted);
             _refreshRequested?.Invoke();
+        }
+
+        private void HandleStopBgmClicked()
+        {
+            _stopBgmRequested?.Invoke();
+            _refreshRequested?.Invoke();
+        }
+
+        private void HandleStopVoiceClicked()
+        {
+            _stopVoiceRequested?.Invoke();
+            _refreshRequested?.Invoke();
+        }
+
+        private void HandleCloseClicked()
+        {
+            _closeRequested?.Invoke();
+        }
+
+        private void RegisterButtonIfConfigured(string buttonName, Action callback)
+        {
+            if (!string.IsNullOrWhiteSpace(buttonName))
+                Callbacks.RegisterButton(Root, buttonName, callback);
         }
 
         private static string BuildBgmText(AudioSettingsPanelViewData panel)
